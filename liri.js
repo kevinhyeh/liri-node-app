@@ -11,19 +11,35 @@ var keys = require('./keys.js');
 var spotify = new Spotify(keys.spotify);
 var client = new Twitter(keys.twitter);
 
-var movieArr = process.argv.slice(3);
-var fullName = movieArr.join(' ');
+var userInput = process.argv.slice(3);
+var inputString = userInput.join(' ');
 
-function searchSpotify(song) {
-    spotify.search({ type: 'track', query: song, limit: 1 }, function(err, data) {
-        var song = data.tracks.items[0];
-        if (err) {
-            return console.log('Error occurred: ' + err);
+// functions
+function searchTweets() {
+    client.get('statuses/user_timeline', { screen_name: 'thegraphicjar', count: 20 }, function(error, tweets, response) {
+        console.log("Accessing twitter account: " + tweets[0].user.screen_name);
+
+        function pastTweets() {
+            for (i = 0; i < tweets.length; i++) {
+                console.log("\nOn " + tweets[i].created_at.slice(0, 10) + tweets[i].created_at.slice(25) + " user posted:");
+                console.log(tweets[i].text);
+            }
         }
-        console.log(song.artists[0].name);
-        console.log(song.name);
-        console.log(song.external_urls.spotify);
-        console.log(song.album.name);
+        setTimeout(pastTweets, 1500);
+    });
+}
+
+function searchSpotify(userSong, a) {
+    spotify.search({ type: 'track', query: userSong, limit: 10 }, function(err, data) {
+            var song = data.tracks.items[a];
+            // console.log(song);
+            if (err) {
+                return console.log('Error occurred: ' + err);
+            }
+            console.log("Artist: " + song.artists[0].name);
+            console.log("Song name: " + song.name);
+            console.log("Song link: " + song.external_urls.spotify);
+            console.log("Album name: " + song.album.name);
     });
 }
 
@@ -36,46 +52,51 @@ function searchMovie(movie) {
             console.log("It was filmed in " + information.Country + " with " + information.Language + " being its main language.");
             console.log(information.Actors + " starred in " + information.Title + ".");
             console.log("The plot of the movies is as follows: " + information.Plot);
+        } else {
+        	console.log("Error! Make sure you spelled the movie correctly.")
         }
     });
 }
 
+// command lines
 if (command == "my-tweets") {
-    // client.get("https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=thegraphicjar&count=20", params, callback);
-    client.get('favorites/list', function(error, tweets, response) {
-        if (error) throw error;
-        console.log(tweets); // The favorites.
-        console.log(response); // Raw response object.
-    });
+    searchTweets();
 } else if (command == "spotify-this-song") {
-    var songInput = process.argv.slice(3);
-    var userSong = songInput.join(' ');
     if (typeof process.argv[3] == "string") {
-        searchSpotify(userSong);
+        searchSpotify(inputString, 0);
     } else {
         var defaultSong = "The Sign";
-        searchSpotify(defaultSong);
+        searchSpotify(defaultSong, 5);
     }
 } else if (command == "movie-this") {
     if (typeof process.argv[3] == "string") {
-        searchMovie(fullName);
+        searchMovie(inputString);
     } else {
-    	var defaultMovie = "Mr. Nobody";
-    	searchMovie(defaultMovie);
+        var defaultMovie = "Mr. Nobody";
+        searchMovie(defaultMovie);
     }
 } else if (command == "do-what-it-says") {
     fs.readFile("random.txt", "utf8", function(err, data) {
         var dataArr = data.split(",");
+        var randomCom = dataArr[0];
+        var randomInput = dataArr[1];
         if (err) {
             return console.log(err);
         }
-        // if (dataArr[0] == "my-tweets") {
-        	
-        // }
-        if (dataArr[0] == "spotify-this-song") {
-            searchSpotify(dataArr[1]);
-        } else if (dataArr[0] == "movie-this") {
-            searchMovie(dataArr[1]);
+        if (randomCom == "my-tweets") {
+        	searchTweets();
+        } else if (randomCom == "spotify-this-song") {
+            searchSpotify(randomInput);
+        } else if (randomCom == "movie-this") {
+            searchMovie(randomInput);
+            console.log("This is my favorite movie.");
         }
     })
 }
+
+// bonus
+fs.appendFile('log.txt', command + " " + inputString + "\n", function(err) {
+    if (err) {
+        console.log(err);
+    }
+});
